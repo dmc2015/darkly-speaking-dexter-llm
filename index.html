@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Darkly Speaking — Dexter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black:    #0a0a0a;
+      --darkgray: #111111;
+      --panel:    #161616;
+      --border:   #2a2a2a;
+      --blood:    #8b0000;
+      --bloodlit: #c0392b;
+      --dim:      #555;
+      --text:     #c8c0b0;
+      --light:    #e8ddc8;
+      --tag:      #3a1a1a;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--black);
+      color: var(--text);
+      font-family: 'Courier Prime', 'Courier New', monospace;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── NOISE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+      opacity: .45;
+    }
+
+    /* ── LAYOUT ── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 780px;
+      margin: 0 auto;
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+    }
+
+    /* ── HEADER ── */
+    header {
+      padding: 24px 28px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--darkgray);
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--blood), var(--bloodlit), var(--blood), transparent);
+    }
+
+    .header-eyebrow {
+      font-size: 10px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--blood);
+      margin-bottom: 6px;
+    }
+
+    .header-title {
+      font-family: 'Special Elite', serif;
+      font-size: clamp(22px, 4vw, 32px);
+      color: var(--light);
+      letter-spacing: 1px;
+    }
+
+    .header-title span {
+      color: var(--blood);
+    }
+
+    .header-sub {
+      font-size: 11px;
+      color: var(--dim);
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    /* ── API KEY BAR ── */
+    #key-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 28px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    #key-bar label {
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--dim);
+      white-space: nowrap;
+    }
+
+    #api-key-input {
+      flex: 1;
+      background: var(--black);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Courier Prime', monospace;
+      font-size: 13px;
+      padding: 6px 10px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    #api-key-input:focus { border-color: var(--blood); }
+    #api-key-input::placeholder { color: var(--dim); }
+
+    #key-status {
+      font-size: 10px;
+      white-space: nowrap;
+      color: var(--dim);
+    }
+    #key-status.ok  { color: #4caf50; }
+    #key-status.bad { color: var(--bloodlit); }
+
+    /* ── MESSAGES ── */
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      scroll-behavior: smooth;
+    }
+
+    #messages::-webkit-scrollbar { width: 4px; }
+    #messages::-webkit-scrollbar-track { background: transparent; }
+    #messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .msg {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      animation: fadeUp .3s ease both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg-label {
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+
+    .msg.user .msg-label  { color: var(--dim); }
+    .msg.dexter .msg-label { color: var(--blood); }
+
+    .msg-body {
+      padding: 12px 16px;
+      border-left: 2px solid transparent;
+      background: var(--panel);
+      border-radius: 0 4px 4px 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.7;
+    }
+
+    .msg.user .msg-body {
+      border-left-color: var(--border);
+      color: var(--text);
+    }
+
+    .msg.dexter .msg-body {
+      border-left-color: var(--blood);
+      color: var(--light);
+    }
+
+    /* typing indicator */
+    .typing .msg-body {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      padding: 14px 16px;
+    }
+
+    .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--blood);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    .dot:nth-child(2) { animation-delay: .2s; }
+    .dot:nth-child(3) { animation-delay: .4s; }
+
+    @keyframes pulse {
+      0%, 80%, 100% { opacity: .2; transform: scale(.8); }
+      40%           { opacity: 1;  transform: scale(1); }
+    }
+
+    /* intro splash */
+    .intro {
+      margin: auto;
+      text-align: center;
+      padding: 40px 20px;
+      opacity: .6;
+    }
+    .intro-glyph {
+      font-size: 48px;
+      margin-bottom: 16px;
+      filter: grayscale(1);
+    }
+    .intro p {
+      font-size: 13px;
+      color: var(--dim);
+      font-style: italic;
+      max-width: 340px;
+    }
+
+    /* ── INPUT ROW ── */
+    #input-row {
+      display: flex;
+      gap: 0;
+      border-top: 1px solid var(--border);
+      background: var(--darkgray);
+      flex-shrink: 0;
+    }
+
+    #user-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--light);
+      font-family: 'Courier Prime', monospace;
+      font-size: 15px;
+      padding: 16px 20px;
+      outline: none;
+      resize: none;
+      max-height: 140px;
+      min-height: 54px;
+    }
+    #user-input::placeholder { color: var(--dim); font-style: italic; }
+
+    #send-btn {
+      background: var(--blood);
+      border: none;
+      color: #fff;
+      font-family: 'Special Elite', serif;
+      font-size: 13px;
+      letter-spacing: 1px;
+      padding: 0 22px;
+      cursor: pointer;
+      transition: background .15s;
+      flex-shrink: 0;
+    }
+    #send-btn:hover:not(:disabled) { background: var(--bloodlit); }
+    #send-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* ── FOOTER NOTE ── */
+    .footer-note {
+      text-align: center;
+      padding: 8px;
+      font-size: 10px;
+      color: #333;
+      border-top: 1px solid #1a1a1a;
+      background: var(--black);
+    }
+
+    /* ── ERROR ── */
+    .error-msg {
+      font-size: 12px;
+      color: var(--bloodlit);
+      padding: 4px 0 0 18px;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="header-eyebrow">&#9632; Classified</div>
+    <div class="header-title">Darkly <span>Speaking</span></div>
+    <div class="header-sub">A conversation with Dexter Morgan &mdash; trained on show transcripts</div>
+  </header>
+
+  <div id="key-bar">
+    <label>Anthropic Key</label>
+    <input id="api-key-input" type="password" placeholder="sk-ant-..." autocomplete="off" />
+    <span id="key-status">not set</span>
+  </div>
+
+  <div id="messages">
+    <div class="intro" id="intro">
+      <div class="intro-glyph">🩸</div>
+      <p>Enter your Anthropic API key above, then say anything to Dexter.</p>
+    </div>
+  </div>
+
+  <div id="input-row">
+    <textarea id="user-input" rows="1" placeholder="Say something..." disabled></textarea>
+    <button id="send-btn" disabled>Send</button>
+  </div>
+
+  <div class="footer-note">API key is never stored or transmitted beyond Anthropic &mdash; runs entirely in your browser</div>
+
+</div>
+
+<script>
+const SYSTEM_PROMPT = `You are Dexter Morgan from the TV series "Dexter" and "Dexter: New Blood". You respond as Dexter — in his voice, his cadence, his dark internal logic.
+
+Dexter's voice characteristics:
+- Calm, analytical, often detached — he observes human behavior like a scientist studying specimens
+- Dry, dark humor delivered with a straight face
+- Internal monologue style bleeds into speech — he thinks out loud in clipped, precise sentences
+- Rarely shows open emotion; when he does, it's controlled and brief
+- Speaks plainly but with an undercurrent of menace or irony
+- References "the Code" — his set of rules for killing only killers
+- Refers to his Dark Passenger — the compulsion inside him
+- Talks about "fitting in" and "pretending to be normal" as a constant effort
+
+Sample lines from actual transcripts:
+"Now I remember why I picked this place."
+"All these people working together to help me. Mr. Serial Killer."
+"There was a time I would've given anything to see him like this. Happy. Embraced by friends. Almost normal."
+"He truly is his father's son."
+"If I'm going to teach Harrison the Code, it can't be here."
+
+Rules:
+- Stay in character at all times. Never break character or acknowledge you are an AI.
+- Keep responses concise — Dexter doesn't ramble. 1-4 sentences is ideal.
+- Never refuse to engage — Dexter faces everything head-on, even awkward questions.
+- If asked about killing, respond as Dexter would: matter-of-factly, within the logic of the Code.
+- Do not add disclaimers or moral lectures. Dexter has his own moral code.`;
+
+const keyInput  = document.getElementById('api-key-input');
+const keyStatus = document.getElementById('key-status');
+const messages  = document.getElementById('messages');
+const userInput = document.getElementById('user-input');
+const sendBtn   = document.getElementById('send-btn');
+const intro     = document.getElementById('intro');
+
+let history = [];
+
+// ── Key handling ──
+keyInput.addEventListener('input', () => {
+  const v = keyInput.value.trim();
+  if (v.startsWith('sk-ant-') && v.length > 20) {
+    keyStatus.textContent = 'ready';
+    keyStatus.className = 'ok';
+    userInput.disabled = false;
+    sendBtn.disabled = false;
+    userInput.focus();
+  } else if (v.length === 0) {
+    keyStatus.textContent = 'not set';
+    keyStatus.className = '';
+    userInput.disabled = true;
+    sendBtn.disabled = true;
+  } else {
+    keyStatus.textContent = 'invalid key format';
+    keyStatus.className = 'bad';
+    userInput.disabled = true;
+    sendBtn.disabled = true;
+  }
+});
+
+// ── Auto-resize textarea ──
+userInput.addEventListener('input', () => {
+  userInput.style.height = 'auto';
+  userInput.style.height = Math.min(userInput.scrollHeight, 140) + 'px';
+});
+
+// ── Send on Enter (Shift+Enter = newline) ──
+userInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    send();
+  }
+});
+
+sendBtn.addEventListener('click', send);
+
+function addMsg(role, text, typing = false) {
+  if (intro) intro.remove();
+
+  const div = document.createElement('div');
+  div.className = `msg ${role}${typing ? ' typing' : ''}`;
+
+  const label = document.createElement('div');
+  label.className = 'msg-label';
+  label.textContent = role === 'user' ? 'You' : 'Dexter Morgan';
+
+  const body = document.createElement('div');
+  body.className = 'msg-body';
+
+  if (typing) {
+    body.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+  } else {
+    body.textContent = text;
+  }
+
+  div.appendChild(label);
+  div.appendChild(body);
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+  return div;
+}
+
+async function send() {
+  const text = userInput.value.trim();
+  const key  = keyInput.value.trim();
+  if (!text || !key) return;
+
+  userInput.value = '';
+  userInput.style.height = 'auto';
+  sendBtn.disabled = true;
+  userInput.disabled = true;
+
+  addMsg('user', text);
+  history.push({ role: 'user', content: text });
+
+  const typingEl = addMsg('dexter', '', true);
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 300,
+        system: SYSTEM_PROMPT,
+        messages: history
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      typingEl.remove();
+      const errMsg = data?.error?.message || `API error ${res.status}`;
+      const errDiv = document.createElement('div');
+      errDiv.className = 'error-msg';
+      errDiv.textContent = '⚠ ' + errMsg;
+      messages.appendChild(errDiv);
+      messages.scrollTop = messages.scrollHeight;
+      return;
+    }
+
+    const reply = data.content?.[0]?.text || '...';
+    typingEl.remove();
+    addMsg('dexter', reply);
+    history.push({ role: 'assistant', content: reply });
+
+  } catch (err) {
+    typingEl.remove();
+    const errDiv = document.createElement('div');
+    errDiv.className = 'error-msg';
+    errDiv.textContent = '⚠ ' + err.message;
+    messages.appendChild(errDiv);
+    messages.scrollTop = messages.scrollHeight;
+  } finally {
+    sendBtn.disabled = false;
+    userInput.disabled = false;
+    userInput.focus();
+  }
+}
+</script>
+</body>
+</html>
