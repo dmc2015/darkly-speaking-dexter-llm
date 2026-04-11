@@ -301,15 +301,15 @@
   </header>
 
   <div id="key-bar">
-    <label>Gemini Key</label>
-    <input id="api-key-input" type="password" placeholder="AIza..." autocomplete="off" />
+    <label>Groq Key</label>
+    <input id="api-key-input" type="password" placeholder="gsk_..." autocomplete="off" />
     <span id="key-status">not set</span>
   </div>
 
   <div id="messages">
     <div class="intro" id="intro">
       <div class="intro-glyph">🩸</div>
-      <p>Enter your Gemini API key above, then say anything to Dexter.</p>
+      <p>Enter your Groq API key above, then say anything to Dexter.</p>
     </div>
   </div>
 
@@ -318,7 +318,7 @@
     <button id="send-btn" disabled>Send</button>
   </div>
 
-  <div class="footer-note">API key is never stored or transmitted beyond Google &mdash; runs entirely in your browser</div>
+  <div class="footer-note">API key is never stored or transmitted beyond Groq &mdash; runs entirely in your browser</div>
 
 </div>
 
@@ -361,7 +361,7 @@ let history = [];
 // ── Key handling ──
 keyInput.addEventListener('input', () => {
   const v = keyInput.value.trim();
-  if (v.startsWith('AIza') && v.length > 20) {
+  if (v.startsWith('gsk_') && v.length > 20) {
     keyStatus.textContent = 'ready';
     keyStatus.className = 'ok';
     userInput.disabled = false;
@@ -438,19 +438,19 @@ async function send() {
   const typingEl = addMsg('dexter', '', true);
 
   try {
-    // Build Gemini conversation format
-    const geminiContents = history.map(m => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }]
-    }));
-
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`, {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`
+      },
       body: JSON.stringify({
-        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents: geminiContents,
-        generationConfig: { maxOutputTokens: 300 }
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 300,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          ...history
+        ]
       })
     });
 
@@ -467,7 +467,7 @@ async function send() {
       return;
     }
 
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '...';
+    const reply = data.choices?.[0]?.message?.content || '...';
     typingEl.remove();
     addMsg('dexter', reply);
     history.push({ role: 'assistant', content: reply });
